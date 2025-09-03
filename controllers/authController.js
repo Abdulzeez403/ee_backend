@@ -34,12 +34,8 @@ const register = async (req, res) => {
     });
     await user.save();
 
-    const userResponse = user.toObject();
-    delete userResponse.password;
-    delete userResponse.refreshTokens;
-
     return res.status(201).json({
-      user: userResponse,
+      user: user,
       tokens: { accessToken, refreshToken },
     });
   } catch (err) {
@@ -60,76 +56,77 @@ const login = async (req, res) => {
     if (!isPasswordValid)
       return res.status(400).json({ message: "Invalid credentials" });
 
-    const { accessToken, refreshToken } = generateTokens(user._id);
-
-    const refreshTokenExpiry = new Date();
-    refreshTokenExpiry.setDate(refreshTokenExpiry.getDate() + 7);
-    user.refreshTokens.push({
-      token: refreshToken,
-      expiresAt: refreshTokenExpiry,
-    });
-    user.refreshTokens = user.refreshTokens.filter(
-      (rt) => rt.expiresAt > new Date()
-    );
+    // Generate tokens
+    const { accessToken } = generateTokens(user._id);
     await user.save();
-
-    const userResponse = user.toObject();
-    delete userResponse.password;
-    delete userResponse.refreshTokens;
-
     return res.json({
-      user: userResponse,
-      tokens: { accessToken, refreshToken },
+      // user,
+      accessToken,
     });
   } catch (err) {
     return res
       .status(500)
-      .json({ message: "Login failed", error: err.message });
+      .json({ message: "Login failed!!", error: err.message });
   }
 };
 
 // Refresh Token
-const refreshToken = async (req, res) => {
+
+const refreshAccessToken = async (req, res) => {
   try {
-    const { refreshToken } = req.body;
-    if (!refreshToken)
+    const refreshToken = req.cookies.refreshToken;
+    if (!refreshToken) {
       return res.status(400).json({ message: "Refresh token required" });
+    }
 
     const decoded = jwt.verify(refreshToken, process.env.JWT_REFRESH_SECRET);
     const user = await User.findById(decoded.userId);
-    if (!user || !user.isActive)
-      return res.status(403).json({ message: "Invalid refresh token" });
 
+    if (!user || !user.isActive) {
+      return res.status(403).json({ message: "Invalid refresh token" });
+    }
+
+    // check refreshToken in DB
     const tokenExists = user.refreshTokens.some(
       (rt) => rt.token === refreshToken && rt.expiresAt > new Date()
     );
-    if (!tokenExists)
+    if (!tokenExists) {
       return res
         .status(403)
         .json({ message: "Invalid or expired refresh token" });
+    }
 
-    const { accessToken, refreshToken: newRefreshToken } = generateTokens(
-      user._id
-    );
+    // issue new access token + rotate refresh token
+    const { accessToken } = generateTokens(user._id, res);
 
-    user.refreshTokens = user.refreshTokens.filter(
-      (rt) => rt.token !== refreshToken
-    );
-    const refreshTokenExpiry = new Date();
-    refreshTokenExpiry.setDate(refreshTokenExpiry.getDate() + 7);
-    user.refreshTokens.push({
-      token: newRefreshToken,
-      expiresAt: refreshTokenExpiry,
-    });
-    await user.save();
-
-    return res.json({ accessToken, refreshToken: newRefreshToken });
+    return res.json({ accessToken });
   } catch (err) {
     return res
       .status(401)
       .json({ message: "Token refresh failed", error: err.message });
   }
 };
+
+// const refreshAccessToken = async (req, res) => {
+//   try {
+//     const refreshToken = req.cookies.refreshToken;
+//     if (!refreshToken)
+//       return res.status(401).json({ message: "No refresh token" });
+
+//     const user = await User.findOne({ "refreshTokens.token": refreshToken });
+//     if (!user)
+//       return res.status(401).json({ message: "Invalid refresh token" });
+
+//     // Verify refresh token (JWT.verify)
+//     jwt.verify(refreshToken, process.env.JWT_REFRESH_SECRET);
+
+//     const { accessToken } = generateTokens(user._id);
+
+//     return res.json({ accessToken });
+//   } catch (err) {
+//     return res.status(401).json({ message: "Token refresh failed" });
+//   }
+// };
 
 // Logout
 const logout = async (req, res) => {
@@ -299,7 +296,7 @@ const verifyEmail = async (req, res) => {
 module.exports = {
   register,
   login,
-  refreshToken,
+  refreshAccessToken,
   logout,
   updateStreak,
   getProfile,

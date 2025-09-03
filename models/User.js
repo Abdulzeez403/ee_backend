@@ -1,5 +1,5 @@
-const mongoose = require("mongoose")
-const bcrypt = require("bcryptjs")
+const mongoose = require("mongoose");
+const bcrypt = require("bcryptjs");
 
 const userSchema = new mongoose.Schema(
   {
@@ -42,6 +42,11 @@ const userSchema = new mongoose.Schema(
       default: 0,
       min: 0,
     },
+    totalReward: {
+      type: Number,
+      default: 0,
+      min: 0,
+    },
     totalScore: {
       type: Number,
       default: 0,
@@ -62,7 +67,7 @@ const userSchema = new mongoose.Schema(
       default: 0,
       min: 0,
     },
-    lastQuizDate: {
+    lastActivity: {
       type: Date,
       default: null,
     },
@@ -109,51 +114,51 @@ const userSchema = new mongoose.Schema(
   },
   {
     timestamps: true,
-  },
-)
+  }
+);
 
 // Index for performance
-userSchema.index({ email: 1 })
-userSchema.index({ username: 1 })
-userSchema.index({ totalScore: -1 })
+userSchema.index({ email: 1 });
+userSchema.index({ username: 1 });
+userSchema.index({ totalScore: -1 });
 
 // Hash password before saving
 userSchema.pre("save", async function (next) {
-  if (!this.isModified("password")) return next()
+  if (!this.isModified("password")) return next();
 
   try {
-    const salt = await bcrypt.genSalt(12)
-    this.password = await bcrypt.hash(this.password, salt)
-    next()
+    const salt = await bcrypt.genSalt(12);
+    this.password = await bcrypt.hash(this.password, salt);
+    next();
   } catch (error) {
-    next(error)
+    next(error);
   }
-})
+});
 
 // Compare password method
 userSchema.methods.comparePassword = async function (candidatePassword) {
-  return bcrypt.compare(candidatePassword, this.password)
-}
+  return bcrypt.compare(candidatePassword, this.password);
+};
 
 // Calculate level based on experience
 userSchema.methods.calculateLevel = function () {
-  this.level = Math.floor(this.experience / 1000) + 1
-  return this.level
-}
+  this.level = Math.floor(this.experience / 1000) + 1;
+  return this.level;
+};
 
 // Add coins method
 userSchema.methods.addCoins = function (amount) {
-  this.coins += amount
-  return this.save()
-}
+  this.coins += amount;
+  return this.save();
+};
 
 // Spend coins method
 userSchema.methods.spendCoins = function (amount) {
   if (this.coins < amount) {
-    throw new Error("Insufficient coins")
+    throw new Error("Insufficient coins");
   }
-  this.coins -= amount
-  return this.save()
-}
+  this.coins -= amount;
+  return this.save();
+};
 
-module.exports = mongoose.model("User", userSchema)
+module.exports = mongoose.model("User", userSchema);

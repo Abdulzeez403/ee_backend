@@ -3,20 +3,20 @@ const router = express.Router();
 const {
   register,
   login,
-  refreshToken,
+  refreshAccessToken,
   logout,
-  // updateStreak,
+  updateStreak,
   getProfile,
   updateProfile,
   changePassword,
   forgotPassword,
   verifyEmail,
 } = require("../controllers/authController");
-const authenticateToken = require("../middleware/auth");
+const { authenticateToken } = require("../middleware/auth");
 
 router.post("/register", register);
 router.post("/login", login);
-router.post("/refresh", refreshToken);
+router.post("/refresh", refreshAccessToken);
 router.post("/logout", authenticateToken, logout);
 
 router.get("/me", authenticateToken, getProfile);

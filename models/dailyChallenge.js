@@ -28,6 +28,7 @@ const questionSchema = new mongoose.Schema({
 const dailyChallengeSchema = new mongoose.Schema(
   {
     title: { type: String, required: true, trim: true },
+    type: { type: String, required: true, trim: true },
     subject: { type: String, required: true, trim: true },
     exam: { type: String, required: true, trim: true },
     timeLimit: { type: Number, default: 600 }, // seconds
@@ -38,33 +39,6 @@ const dailyChallengeSchema = new mongoose.Schema(
   { timestamps: true }
 );
 
-// Challenge Attempt Schema
-const challengeAttemptSchema = new mongoose.Schema(
-  {
-    userId: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: "User",
-      required: true,
-    },
-    challengeId: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: "DailyChallenge",
-      required: true,
-    },
-    score: { type: Number, default: 0 },
-    attemptedAt: { type: Date, default: Date.now },
-  },
-  { timestamps: true }
-);
-
-// Index for performance
-challengeAttemptSchema.index({ userId: 1, challengeId: 1 });
-
-// Models
 const DailyChallenge = mongoose.model("DailyChallenge", dailyChallengeSchema);
-const ChallengeAttempt = mongoose.model(
-  "ChallengeAttempt",
-  challengeAttemptSchema
-);
 
-module.exports = { DailyChallenge, ChallengeAttempt };
+module.exports = { DailyChallenge };

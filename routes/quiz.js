@@ -9,11 +9,12 @@ const {
 } = require("../controllers/quiz");
 
 const router = express.Router();
+const { authenticateToken } = require("../middleware/auth");
 
-router.post("/", createQuiz); // Create quiz
-router.get("/", getQuizzes); // Get all quizzes
-router.get("/:id", getQuiz); // Get single quiz
-router.put("/:id", updateQuiz); // Update quiz
-router.delete("/:id", deleteQuiz); // Delete quiz
+router.post("/", authenticateToken, createQuiz); // Create quiz
+router.get("/", authenticateToken, getQuizzes); // Get all quizzes
+router.get("/:id", authenticateToken, getQuiz); // Get single quiz
+router.put("/:id", authenticateToken, updateQuiz); // Update quiz
+router.delete("/:id", authenticateToken, deleteQuiz); // Delete quiz
 
 module.exports = router;

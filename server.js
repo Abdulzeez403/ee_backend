@@ -11,12 +11,13 @@ const coinRoutes = require("./routes/coin");
 const quizRoutes = require("./routes/quiz");
 const businessLogicRoutes = require("./routes/businessLogic");
 const dailyChallengeRoutes = require("./routes/dailyChallenge");
+const rewardRoutes = require("./routes/reward");
 
 // Security middleware
 app.use(helmet());
 app.use(
   cors({
-    origin: "http://localhost:3001",
+    origin: "http://localhost:3000",
     credentials: true,
   })
 );
@@ -44,6 +45,7 @@ app.use("/api/coin", coinRoutes);
 app.use("/api/quiz", quizRoutes);
 app.use("/api/logic", businessLogicRoutes);
 app.use("/api/daily-challenges", dailyChallengeRoutes);
+app.use("/api/purchase", rewardRoutes);
 
 // Health check endpoint
 app.get("/health", (req, res) => {

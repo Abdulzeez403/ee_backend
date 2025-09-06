@@ -95,50 +95,7 @@ const getActiveChallenge = async (req, res) => {
   }
 };
 
-// ✅ Attempt a challenge
-const attemptChallenge = async (req, res) => {
-  try {
-    const { challengeId } = req.params;
-    const userId = req.user.id; // assuming user is authenticated
-
-    // Check if already attempted
-    const existingAttempt = await ChallengeAttempt.findOne({
-      userId,
-      challengeId,
-    });
-    if (existingAttempt) {
-      return res
-        .status(400)
-        .json({ message: "Already attempted this challenge" });
-    }
-
-    // Save attempt
-    const attempt = new ChallengeAttempt({ userId, challengeId });
-    await attempt.save();
-
-    res.status(201).json({ message: "Attempt recorded", attempt });
-  } catch (error) {
-    res.status(500).json({ message: "Server error", error: error.message });
-  }
-};
-
-// ✅ Check if attempted
-const checkAttempt = async (req, res) => {
-  try {
-    const { challengeId } = req.params;
-    const userId = req.user.id;
-
-    const attempt = await ChallengeAttempt.findOne({ userId, challengeId });
-
-    res.json({ attempted: !!attempt });
-  } catch (error) {
-    res.status(500).json({ message: "Server error", error: error.message });
-  }
-};
-
 module.exports = {
-  attemptChallenge,
-  checkAttempt,
   createChallenge,
   getChallenges,
   getChallengeById,

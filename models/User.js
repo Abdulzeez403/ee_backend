@@ -71,11 +71,17 @@ const userSchema = new mongoose.Schema(
       type: Date,
       default: null,
     },
+    exams: [
+      {
+        type: String, // e.g. "WAEC", "JAMB"
+        trim: true,
+      },
+    ],
+
     subjects: [
       {
-        name: String,
-        level: { type: Number, default: 1 },
-        experience: { type: Number, default: 0 },
+        type: String, // e.g. "WAEC", "JAMB"
+        trim: true,
       },
     ],
     achievements: [

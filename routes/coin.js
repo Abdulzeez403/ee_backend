@@ -1,5 +1,5 @@
 const express = require("express");
-const { addCoins, deductCoins } = require("../controllers/coinController");
+const { addCoins, deductCoins } = require("../businessLogic/coin_logic");
 
 const router = express.Router();
 const { authenticateToken } = require("../middleware/auth");

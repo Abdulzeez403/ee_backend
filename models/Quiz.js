@@ -11,6 +11,7 @@ const questionSchema = new mongoose.Schema({
 const quizSchema = new mongoose.Schema(
   {
     title: { type: String, required: true },
+    type: { type: String, required: true, trim: true },
     subject: { type: String, required: true },
     exam: { type: String, required: true },
     timeLimit: { type: Number, default: 600 }, // seconds

@@ -1,4 +1,5 @@
 const Quiz = require("../models/quiz");
+const User = require("../models/User");
 
 // CREATE a quiz
 const createQuiz = async (req, res) => {
@@ -11,10 +12,24 @@ const createQuiz = async (req, res) => {
   }
 };
 
-// READ all quizzes
+// READ all quizzes personalized to the user
 const getQuizzes = async (req, res) => {
   try {
-    const quizzes = await Quiz.find();
+    const userId = req.user.id; // ✅ correct way
+    console.log(userId, "the userId");
+
+    // Find user
+    const user = await User.findById(userId);
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
+    // Filter quizzes by exam + subject
+    const quizzes = await Quiz.find({
+      exam: { $in: user.exams },
+      subject: { $in: user.subjects }, // direct array of strings
+    });
+
     res.json(quizzes);
   } catch (error) {
     res.status(500).json({ message: error.message });

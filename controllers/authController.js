@@ -9,7 +9,15 @@ const jwt = require("jsonwebtoken");
 // Register
 const register = async (req, res) => {
   try {
-    const { username, email, password, firstName, lastName } = req.body;
+    const {
+      username,
+      email,
+      password,
+      firstName,
+      lastName,
+      exams = [],
+      subjects = [],
+    } = req.body;
 
     const existingUser = await User.findOne({ $or: [{ email }, { username }] });
     if (existingUser) {
@@ -21,7 +29,15 @@ const register = async (req, res) => {
       });
     }
 
-    const user = new User({ username, email, password, firstName, lastName });
+    const user = new User({
+      username,
+      email,
+      password,
+      firstName,
+      lastName,
+      exams,
+      subjects,
+    });
     await user.save();
 
     const { accessToken, refreshToken } = generateTokens(user._id);

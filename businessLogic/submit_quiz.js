@@ -1,16 +1,32 @@
 const mongoose = require("mongoose");
 const User = require("../models/User");
 const Quiz = require("../models/quiz");
-const {
-  DailyChallenge,
-  ChallengeAttempt,
-} = require("../models/dailyChallenge");
+const { DailyChallenge } = require("../models/dailyChallenge");
+const Attempt = require("../models/attempt");
 
 const submitQuiz = async (req, res) => {
   try {
     const { id, answers, type } = req.body; // id = quizId or dailyChallengeId
-    const userId = req.params.id;
+    const userId = req.user.id;
 
+    if (!["quiz", "challenge"].includes(type)) {
+      return res.status(400).json({ message: "Invalid type" });
+    }
+
+    // ✅ Check if user already attempted this quiz/challenge
+    const existingAttempt = await Attempt.findOne({
+      userId: new mongoose.Types.ObjectId(userId),
+      referenceId: new mongoose.Types.ObjectId(id),
+      type,
+    });
+
+    if (existingAttempt) {
+      return res
+        .status(400)
+        .json({ message: `You have already attempted this ${type}` });
+    }
+
+    // ✅ Fetch questions and title
     let questions = [];
     let title = "";
 
@@ -23,34 +39,20 @@ const submitQuiz = async (req, res) => {
       const dailyChallenge = await DailyChallenge.findById(id);
       if (!dailyChallenge)
         return res.status(404).json({ message: "Daily challenge not found" });
-
-      // Check if user already attempted
-      const existingAttempt = await ChallengeAttempt.findOne({
-        userId: new mongoose.Types.ObjectId(userId),
-        challengeId: new mongoose.Types.ObjectId(id),
-      });
-      if (existingAttempt) {
-        return res
-          .status(400)
-          .json({ message: "You have already attempted this challenge" });
-      }
-
       questions = dailyChallenge.questions;
       title = dailyChallenge.title;
-    } else {
-      return res.status(400).json({ message: "Invalid type" });
     }
 
-    // Calculate score
+    // ✅ Calculate score
     let score = 0;
     questions.forEach((q, idx) => {
       if (parseInt(answers[idx]) === parseInt(q.correctAnswer)) score++;
     });
 
-    // Base reward (2 coins per correct answer)
+    // ✅ Base reward (2 coins per correct answer)
     let reward = score * 2;
 
-    // Update user
+    // ✅ Update user
     const user = await User.findById(userId);
     if (!user) return res.status(404).json({ message: "User not found" });
 
@@ -88,18 +90,16 @@ const submitQuiz = async (req, res) => {
 
     user.totalReward = reward + streakBonus + milestoneBonus;
 
-    // Save user
     await user.save();
 
-    // Save challenge attempt if type is challenge
-    // if (type === "challenge") {
-    //   const attempt = new ChallengeAttempt({
-    //     userId: mongoose.Types.ObjectId(userId),
-    //     challengeId: mongoose.Types.ObjectId(id),
-    //     score,
-    //   });
-    //   await attempt.save();
-    // }
+    // ✅ Save attempt
+    const attempt = new Attempt({
+      userId,
+      referenceId: id,
+      type,
+      score,
+    });
+    await attempt.save();
 
     res.json({
       message: `${type} submitted successfully`,

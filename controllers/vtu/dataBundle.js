@@ -1,23 +1,31 @@
-const User = require("../../models/userModel");
+const { deductCoins, addCoins } = require("../coinController");
+const EasyAccessService = require("../../services/easyAccess");
+const { saveTransaction } = require("../../utils/saveTransaction");
 
 const NETWORK_MAP = {
-  // Airtime/Data
   mtn: { easyaccess: "01" },
   airtel: { easyaccess: "03" },
   glo: { easyaccess: "02" },
   "9mobile": { easyaccess: "04" },
 };
 
+// Example: define prefix rules somewhere globally (or DB)
+const NETWORK_PREFIXES = {
+  mtn: ["0803", "0806", "0703", "0706", "0810", "0813", "0814", "0816"],
+  airtel: ["0802", "0808", "0708", "0812", "0701"],
+  glo: ["0805", "0807", "0811", "0815"],
+  "9mobile": ["0809", "0817", "0818", "0909"],
+};
+
 const purchaseData = async (req, res) => {
   try {
-    const { phone, userId, planId, networkId, amount } = req.body;
-    console.log(req.body);
+    const { phone, userId, plan, networkId, amount } = req.body;
 
-    if (!phone || !userId || !planId || !networkId) {
+    if (!phone || !userId || !plan || !networkId || !amount) {
       return res.status(400).json({ error: "Missing required fields" });
     }
 
-    // ✅ Check network prefix (4 or 5 digits)
+    // ✅ Validate phone prefix
     const phonePrefix4 = phone.substring(0, 4);
     const phonePrefix5 = phone.substring(0, 5);
     const validPrefixes = NETWORK_PREFIXES[networkId.toLowerCase()];
@@ -31,26 +39,24 @@ const purchaseData = async (req, res) => {
       });
     }
 
-    const user = await User.findById(userId);
-    if (!user) return res.status(404).json({ error: "User not found" });
-
-    const previousCoin = user?.coin;
-
-    await deduce(userId, plan.ourPrice);
+    // ✅ Deduct coins first
+    await deductCoins(userId, plan.ourPrice);
 
     const networkKey = networkId.toLowerCase();
     const mappedCodes = NETWORK_MAP[networkKey];
     if (!mappedCodes) {
+      await addCoins(userId, plan.ourPrice); // refund immediately
       return res.status(400).json({ error: "Invalid network selected" });
     }
 
-    await EasyAccessService.purchaseData({
+    // ✅ Call provider
+    const result = await EasyAccessService.purchaseData({
       network: mappedCodes.easyaccess,
       dataplan: plan.easyaccessId,
       phone,
     });
 
-    // ❌ FAILURE CONDITION
+    // ❌ Handle failure
     if (
       !result ||
       result.success === false ||
@@ -58,7 +64,7 @@ const purchaseData = async (req, res) => {
       result.data?.success === "false_disabled" ||
       result.status === false
     ) {
-      await refundToVirtualAccount(userId, amount);
+      await addCoins(userId, plan.ourPrice);
 
       const failedTxn = await saveTransaction({
         response: result || {},
@@ -72,8 +78,6 @@ const purchaseData = async (req, res) => {
           dataplan: plan?.name || "",
         },
         transaction_type: "debit",
-        previous_balance: previousBalance,
-        new_balance: previousBalance,
       });
 
       return res.status(400).json({
@@ -85,9 +89,7 @@ const purchaseData = async (req, res) => {
       });
     }
 
-    // ✅ SUCCESS
-    const refundedUser = await User.findById(userId);
-
+    // ✅ Handle success
     const savedTxn = await saveTransaction({
       response: result,
       serviceType: "data",
@@ -101,8 +103,6 @@ const purchaseData = async (req, res) => {
         client_reference: result?.data?.client_reference,
       },
       transaction_type: "debit",
-      previous_balance: previousBalance,
-      new_balance: refundedUser.balance,
     });
 
     return res.status(200).json({
@@ -118,6 +118,4 @@ const purchaseData = async (req, res) => {
   }
 };
 
-module.exports = {
-  purchaseData,
-};
+module.exports = { purchaseData };

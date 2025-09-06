@@ -16,6 +16,7 @@ const seedChallenges = async () => {
     const challenges = [
       {
         title: "Math Daily Challenge 1",
+        type: "challenge",
         subject: "Mathematics",
         exam: "WAEC",
         startTime: new Date(),
@@ -86,6 +87,8 @@ const seedChallenges = async () => {
       },
       {
         title: "English Daily Challenge 1",
+        type: "challenge",
+
         subject: "English",
         exam: "JAMB",
         startTime: new Date(),
@@ -157,6 +160,8 @@ const seedChallenges = async () => {
       },
       {
         title: "Science Daily Challenge 1",
+        type: "challenge",
+
         subject: "Science",
         exam: "NECO",
         startTime: new Date(),

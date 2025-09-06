@@ -8,6 +8,7 @@ dotenv.config();
 const quizzes = [
   {
     title: "Mathematics - Algebra Basics",
+    type: "quiz",
     subject: "Mathematics",
     exam: "JAMB",
     timeLimit: 900,
@@ -81,6 +82,8 @@ const quizzes = [
   },
   {
     title: "Physics - Mechanics",
+    type: "quiz",
+
     subject: "Physics",
     exam: "JAMB",
     timeLimit: 900,
@@ -155,6 +158,8 @@ const quizzes = [
   {
     title: "Chemistry - Basics",
     subject: "Chemistry",
+    type: "quiz",
+
     exam: "JAMB",
     timeLimit: 900,
     questions: [
@@ -227,6 +232,8 @@ const quizzes = [
   },
   {
     title: "Biology - Cells",
+    type: "quiz",
+
     subject: "Biology",
     exam: "JAMB",
     timeLimit: 900,

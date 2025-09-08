@@ -1,4 +1,4 @@
-const User = require("../models/User");
+const User = require("../models/user");
 
 // Add coins
 const addCoins = async (userId, amount) => {

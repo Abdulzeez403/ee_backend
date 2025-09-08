@@ -11,7 +11,7 @@ const {
   changePassword,
   forgotPassword,
   verifyEmail,
-} = require("../controllers/authController");
+} = require("../controllers/auth");
 const { authenticateToken } = require("../middleware/auth");
 
 router.post("/register", register);

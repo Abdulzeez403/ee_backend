@@ -1,5 +1,5 @@
 const VTpassService = require("../../services/vtpass");
-const User = require("../../models/User");
+const User = require("../../models/user");
 const { deductCoins, addCoins } = require("../../businessLogic/coin_logic");
 const { saveTransaction } = require("../../utils/saveTransaction"); // ✅ use same saveTransaction
 const mongoose = require("mongoose");

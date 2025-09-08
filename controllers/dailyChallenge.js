@@ -1,7 +1,4 @@
-const {
-  DailyChallenge,
-  ChallengeAttempt,
-} = require("../models/dailyChallenge");
+const { DailyChallenge } = require("../models/dailyChallenge");
 
 // Create
 const createChallenge = async (req, res) => {

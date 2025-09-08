@@ -167,4 +167,5 @@ userSchema.methods.spendCoins = function (amount) {
   return this.save();
 };
 
-module.exports = mongoose.model("User", userSchema);
+const User = mongoose.models.User || mongoose.model("User", userSchema);
+module.exports = User;

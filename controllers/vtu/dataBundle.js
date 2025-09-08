@@ -1,4 +1,4 @@
-const { deductCoins, addCoins } = require("../coinController");
+const { deductCoins, addCoins } = require("../coin");
 const EasyAccessService = require("../../services/easyAccess");
 const { saveTransaction } = require("../../utils/saveTransaction");
 

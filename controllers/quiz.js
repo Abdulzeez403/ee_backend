@@ -16,8 +16,6 @@ const createQuiz = async (req, res) => {
 const getQuizzes = async (req, res) => {
   try {
     const userId = req.user.id; // ✅ correct way
-    console.log(userId, "the userId");
-
     // Find user
     const user = await User.findById(userId);
     if (!user) {

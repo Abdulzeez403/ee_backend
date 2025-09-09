@@ -1,6 +1,6 @@
 const { generateTokens } = require("../utils/helpers");
 const jwt = require("jsonwebtoken");
-const User = require("../models/user.js");
+const User = require("../models/user");
 
 // =====================
 // Auth Controller

@@ -1,4 +1,4 @@
-const EasyAccessService = require("../../services/easyAccess");
+const EasyAccessService = require("../../services/easyaccess");
 const User = require("../../models/user");
 const saveTransaction = require("../../utils/saveTransaction");
 const { deductCoins, addCoins } = require("../../businessLogic/coin_logic");

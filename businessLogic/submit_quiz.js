@@ -1,6 +1,6 @@
 const mongoose = require("mongoose");
 const User = require("../models/userModel");
-const Quiz = require("../models/quiz");
+const Quiz = require("../models/quizModel");
 const { DailyChallenge } = require("../models/dailyChallenge");
 const Attempt = require("../models/attempt");
 

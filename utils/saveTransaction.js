@@ -1,5 +1,5 @@
 const Transaction = require("../models/transaction");
-const User = require("../models/User");
+const User = require("../models/userModel");
 const generateRefNo = require("../utils/generateRefNo");
 
 const saveTransaction = async ({

@@ -17,7 +17,7 @@ const rewardRoutes = require("./routes/reward");
 app.use(helmet());
 app.use(
   cors({
-    origin: ["http://localhost:3000", "https://passrite.onrender.com"],
+    origin: ["http://localhost:3000", "https://passrite.vercel.app/"],
     credentials: true,
   })
 );

@@ -47,8 +47,8 @@ app.use("/api/logic", businessLogicRoutes);
 app.use("/api/daily-challenges", dailyChallengeRoutes);
 app.use("/api/purchase", rewardRoutes);
 
-// Health check endpoint
-app.get("/health", (req, res) => {
+// ✅ Healthcheck route to prevent cold start
+app.get("/", (req, res) => {
   res.status(200).json({ status: "OK", timestamp: new Date().toISOString() });
 });
 

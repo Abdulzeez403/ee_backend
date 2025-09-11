@@ -1,7 +1,7 @@
 // seed/quizSeeder.js
 const mongoose = require("mongoose");
 const dotenv = require("dotenv");
-const Quiz = require("../models/quiz");
+const Quiz = require("../models/quizModel");
 
 dotenv.config();
 

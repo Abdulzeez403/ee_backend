@@ -18,7 +18,7 @@ const getQuizzes = async (req, res) => {
   try {
     const userId = req.user.id; // ✅ correct way
     // Find user
-    const user = await User.findById(userId);
+    const user = await User.findById(userId).select("-correctAnswer");
     if (!user) {
       return res.status(404).json({ message: "User not found" });
     }
@@ -38,7 +38,7 @@ const getQuizzes = async (req, res) => {
 // READ one quiz
 const getQuiz = async (req, res) => {
   try {
-    const quiz = await Quiz.findById(req.params.id);
+    const quiz = await Quiz.findById(req.params.id).select("-correctAnswer");
     if (!quiz) return res.status(404).json({ message: "Quiz not found" });
     res.json(quiz);
   } catch (error) {

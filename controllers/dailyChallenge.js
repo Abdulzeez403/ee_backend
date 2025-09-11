@@ -77,7 +77,7 @@ const getActiveChallenge = async (req, res) => {
     const challenge = await DailyChallenge.findOne({
       startTime: { $lte: now },
       endTime: { $gte: now },
-    });
+    }).select("-correctAnswer");
 
     if (!challenge) {
       return res.status(404).json({ message: "No active challenge found" });

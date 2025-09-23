@@ -2,10 +2,32 @@
 const mongoose = require("mongoose");
 const Attempt = require("../models/attempt");
 
+// const checkAttempt = async (req, res) => {
+//   try {
+//     const { id, type } = req.params; // id = quizId or challengeId
+//     const userId = req.user.id; // assuming you attach user to req.user from auth middleware
+
+//     if (!["quiz", "challenge"].includes(type)) {
+//       return res.status(400).json({ message: "Invalid type" });
+//     }
+
+//     const attempt = await Attempt.findOne({
+//       userId: new mongoose.Types.ObjectId(userId),
+//       referenceId: new mongoose.Types.ObjectId(id),
+//       type,
+//     });
+
+//     res.json({ attempted: !!attempt });
+//   } catch (error) {
+//     console.error(error);
+//     res.status(500).json({ message: "Server error", error: error.message });
+//   }
+// };
+
 const checkAttempt = async (req, res) => {
   try {
-    const { id, type } = req.params; // id = quizId or challengeId
-    const userId = req.user.id; // assuming you attach user to req.user from auth middleware
+    const { id, type } = req.params;
+    const userId = req.user.id;
 
     if (!["quiz", "challenge"].includes(type)) {
       return res.status(400).json({ message: "Invalid type" });
@@ -17,7 +39,11 @@ const checkAttempt = async (req, res) => {
       type,
     });
 
-    res.json({ attempted: !!attempt });
+    res.json({
+      referenceId: id,
+      type,
+      attempted: !!attempt,
+    });
   } catch (error) {
     console.error(error);
     res.status(500).json({ message: "Server error", error: error.message });

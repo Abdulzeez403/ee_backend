@@ -1,4 +1,3 @@
-// seedDailyChallenge.js
 const mongoose = require("mongoose");
 const { DailyChallenge } = require("../models/dailyChallenge");
 const dotenv = require("dotenv");
@@ -13,14 +12,13 @@ const seedChallenges = async () => {
   try {
     await DailyChallenge.deleteMany(); // clear existing ones
 
-    const challenges = [
+    // === Your 3 base challenges with full questions ===
+    const baseChallenges = [
       {
-        title: "Math Daily Challenge 1",
+        title: "Math Daily Challenge",
         type: "challenge",
         subject: "Mathematics",
         exam: "WAEC",
-        startTime: new Date(),
-        endTime: new Date(Date.now() + 24 * 60 * 60 * 1000), // +1 day
         timeLimit: 600,
         questions: [
           {
@@ -86,13 +84,10 @@ const seedChallenges = async () => {
         ],
       },
       {
-        title: "English Daily Challenge 1",
+        title: "English Daily Challenge",
         type: "challenge",
-
         subject: "English",
         exam: "JAMB",
-        startTime: new Date(),
-        endTime: new Date(Date.now() + 24 * 60 * 60 * 1000),
         timeLimit: 900,
         questions: [
           {
@@ -159,13 +154,10 @@ const seedChallenges = async () => {
         ],
       },
       {
-        title: "Science Daily Challenge 1",
+        title: "Science Daily Challenge",
         type: "challenge",
-
         subject: "Science",
         exam: "NECO",
-        startTime: new Date(),
-        endTime: new Date(Date.now() + 24 * 60 * 60 * 1000),
         timeLimit: 1200,
         questions: [
           {
@@ -232,8 +224,28 @@ const seedChallenges = async () => {
       },
     ];
 
+    // === Spread them across 5 days ===
+    const baseDate = new Date();
+    baseDate.setHours(0, 0, 0, 0);
+
+    const challenges = Array.from({ length: 5 }, (_, i) => {
+      const startTime = new Date(baseDate.getTime() + i * 24 * 60 * 60 * 1000);
+      const endTime = new Date(startTime.getTime() + 24 * 60 * 60 * 1000);
+
+      const template = baseChallenges[i % baseChallenges.length];
+
+      return {
+        ...template,
+        title: `${template.title} - Day ${i + 1}`,
+        startTime,
+        endTime,
+      };
+    });
+
     await DailyChallenge.insertMany(challenges);
-    console.log("✅ 3 Daily Challenges with 10 Questions Each Seeded!");
+    console.log(
+      "✅ 5 Daily Challenges seeded across 5 days (with full questions)!"
+    );
     process.exit();
   } catch (err) {
     console.error(err);

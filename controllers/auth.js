@@ -1,6 +1,7 @@
 const { generateTokens } = require("../utils/helpers");
 const jwt = require("jsonwebtoken");
 const User = require("../models/userModel");
+const UserProfile = require("../models/userProfileModel");
 
 // =====================
 // Auth Controller
@@ -19,6 +20,9 @@ const register = async (req, res) => {
       subjects = [],
     } = req.body;
 
+    console.log(req.body);
+
+    // 1️⃣ Check if user already exists
     const existingUser = await User.findOne({ $or: [{ email }, { username }] });
     if (existingUser) {
       return res.status(400).json({
@@ -29,19 +33,47 @@ const register = async (req, res) => {
       });
     }
 
-    const user = new User({
+    // 2️⃣ Create the User (auth only)
+    const user = await User.create({
       username,
       email,
       password,
       firstName,
       lastName,
-      exams,
-      subjects,
+      role: "user",
     });
-    await user.save();
 
+    // 3️⃣ Create the linked UserProfile
+    const userProfile = await UserProfile.create({
+      userId: user._id,
+      fullName: `${firstName} ${lastName}`,
+      email,
+      avatar: "/default-avatar.png",
+      stats: {
+        level: 1,
+        xp: 0,
+        coins: 0,
+        quizzesCompleted: 0,
+        averageScore: 0,
+        currentStreak: 0,
+        longestStreak: 0,
+      },
+      exams, // e.g. ["WAEC", "JAMB"]
+      subjects: subjects.map((sub) => ({
+        name: sub,
+        quizzesCompleted: 0,
+        averageScore: 0,
+        totalScore: 0,
+        totalAttempts: 0,
+      })),
+      achievements: [],
+      activityLog: [],
+    });
+
+    // 4️⃣ Generate access & refresh tokens
     const { accessToken, refreshToken } = generateTokens(user._id);
 
+    // 5️⃣ Save refresh token in User
     const refreshTokenExpiry = new Date();
     refreshTokenExpiry.setDate(refreshTokenExpiry.getDate() + 7);
     user.refreshTokens.push({
@@ -50,11 +82,15 @@ const register = async (req, res) => {
     });
     await user.save();
 
+    // 6️⃣ Send response with both user and profile
     return res.status(201).json({
-      user: user,
+      message: "User registered successfully",
+      user,
+      userProfile,
       tokens: { accessToken, refreshToken },
     });
   } catch (err) {
+    console.error(err);
     return res
       .status(500)
       .json({ message: "Registration failed", error: err.message });
@@ -193,15 +229,56 @@ const updateStreak = async (req, res) => {
 // Get Profile
 const getProfile = async (req, res) => {
   try {
+    // 1️⃣ Find the User first (optional: auth verification)
     const user = await User.findById(req.user._id).select(
       "-password -refreshTokens"
     );
     if (!user) return res.status(404).json({ message: "User not found" });
-    return res.json({ user });
+
+    // 2️⃣ Find the linked UserProfile
+    const profile = await UserProfile.findOne({ userId: user._id });
+    if (!profile)
+      return res.status(404).json({ message: "User profile not found" });
+
+    // 3️⃣ Return both user info and profile
+    return res.json({
+      user,
+      profile,
+    });
   } catch (err) {
     return res
       .status(500)
       .json({ message: "Failed to get profile", error: err.message });
+  }
+};
+
+const getAllUsers = async (req, res) => {
+  try {
+    // 1️⃣ Get all users (excluding sensitive fields)
+    const users = await User.find().select("-password -refreshTokens");
+
+    // 2️⃣ Get profiles for all users
+    const profiles = await UserProfile.find({
+      userId: { $in: users.map((u) => u._id) },
+    });
+
+    // 3️⃣ Merge user + profile for frontend consumption
+    const result = users.map((user) => {
+      const profile = profiles.find(
+        (p) => p.userId.toString() === user._id.toString()
+      );
+      return {
+        ...user.toObject(),
+        profile: profile || null,
+      };
+    });
+
+    return res.status(200).json({ users: result });
+  } catch (err) {
+    console.error(err);
+    return res
+      .status(500)
+      .json({ message: "Failed to fetch users", error: err.message });
   }
 };
 
@@ -316,6 +393,7 @@ module.exports = {
   logout,
   updateStreak,
   getProfile,
+  getAllUsers,
   updateProfile,
   changePassword,
   forgotPassword,

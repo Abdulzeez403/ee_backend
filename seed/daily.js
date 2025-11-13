@@ -19,7 +19,7 @@ const seedChallenges = async () => {
         type: "challenge",
         subject: "Mathematics",
         exam: "WAEC",
-        timeLimit: 600,
+        timeLimit: 2 * 60,
         questions: [
           {
             question: "What is 5 + 7?",
@@ -88,7 +88,7 @@ const seedChallenges = async () => {
         type: "challenge",
         subject: "English",
         exam: "JAMB",
-        timeLimit: 900,
+        timeLimit: 2 * 60,
         questions: [
           {
             question: "Choose the correct synonym of 'Happy'",
@@ -158,7 +158,8 @@ const seedChallenges = async () => {
         type: "challenge",
         subject: "Science",
         exam: "NECO",
-        timeLimit: 1200,
+        timeLimit: 2 * 60,
+
         questions: [
           {
             question: "What planet is known as the Red Planet?",

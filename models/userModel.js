@@ -33,70 +33,6 @@ const userSchema = new mongoose.Schema(
       required: true,
       trim: true,
     },
-    avatar: {
-      type: String,
-      default: null,
-    },
-    coins: {
-      type: Number,
-      default: 0,
-      min: 0,
-    },
-    totalReward: {
-      type: Number,
-      default: 0,
-      min: 0,
-    },
-    totalScore: {
-      type: Number,
-      default: 0,
-      min: 0,
-    },
-    level: {
-      type: Number,
-      default: 1,
-      min: 1,
-    },
-    experience: {
-      type: Number,
-      default: 0,
-      min: 0,
-    },
-    streak: {
-      type: Number,
-      default: 0,
-      min: 0,
-    },
-    lastActivity: {
-      type: Date,
-      default: null,
-    },
-    exams: [
-      {
-        type: String, // e.g. "WAEC", "JAMB"
-        trim: true,
-      },
-    ],
-
-    subjects: [
-      {
-        type: String, // e.g. "WAEC", "JAMB"
-        trim: true,
-      },
-    ],
-    achievements: [
-      {
-        name: String,
-        description: String,
-        earnedAt: { type: Date, default: Date.now },
-        icon: String,
-      },
-    ],
-    preferences: {
-      notifications: { type: Boolean, default: true },
-      soundEffects: { type: Boolean, default: true },
-      theme: { type: String, enum: ["light", "dark"], default: "light" },
-    },
     isActive: {
       type: Boolean,
       default: true,
@@ -123,11 +59,6 @@ const userSchema = new mongoose.Schema(
   }
 );
 
-// Index for performance
-userSchema.index({ email: 1 });
-userSchema.index({ username: 1 });
-userSchema.index({ totalScore: -1 });
-
 // Hash password before saving
 userSchema.pre("save", async function (next) {
   if (!this.isModified("password")) return next();
@@ -144,27 +75,6 @@ userSchema.pre("save", async function (next) {
 // Compare password method
 userSchema.methods.comparePassword = async function (candidatePassword) {
   return bcrypt.compare(candidatePassword, this.password);
-};
-
-// Calculate level based on experience
-userSchema.methods.calculateLevel = function () {
-  this.level = Math.floor(this.experience / 1000) + 1;
-  return this.level;
-};
-
-// Add coins method
-userSchema.methods.addCoins = function (amount) {
-  this.coins += amount;
-  return this.save();
-};
-
-// Spend coins method
-userSchema.methods.spendCoins = function (amount) {
-  if (this.coins < amount) {
-    throw new Error("Insufficient coins");
-  }
-  this.coins -= amount;
-  return this.save();
 };
 
 const User = mongoose.models.User || mongoose.model("User", userSchema);

@@ -3,6 +3,27 @@ const jwt = require("jsonwebtoken");
 const User = require("../models/userModel");
 const UserProfile = require("../models/userProfileModel");
 
+const getCookieValue = (req, cookieName) => {
+  const raw = req.headers?.cookie;
+  if (!raw) return null;
+  const parts = raw.split(";").map((p) => p.trim());
+  const match = parts.find((p) => p.startsWith(`${cookieName}=`));
+  if (!match) return null;
+  const value = match.substring(cookieName.length + 1);
+  try {
+    return decodeURIComponent(value);
+  } catch {
+    return value;
+  }
+};
+
+const sanitizeUser = (userDoc) => {
+  const obj = userDoc?.toObject ? userDoc.toObject() : { ...(userDoc || {}) };
+  delete obj.password;
+  delete obj.refreshTokens;
+  return obj;
+};
+
 // =====================
 // Auth Controller
 // =====================
@@ -19,8 +40,6 @@ const register = async (req, res) => {
       exams = [],
       subjects = [],
     } = req.body;
-
-    console.log(req.body);
 
     // 1️⃣ Check if user already exists
     const existingUser = await User.findOne({ $or: [{ email }, { username }] });
@@ -41,6 +60,8 @@ const register = async (req, res) => {
       firstName,
       lastName,
       role: "user",
+      exams,
+      subjects,
     });
 
     // 3️⃣ Create the linked UserProfile
@@ -52,13 +73,13 @@ const register = async (req, res) => {
       stats: {
         level: 1,
         xp: 0,
-        coins: 0,
+        coins: user.coins,
         quizzesCompleted: 0,
         averageScore: 0,
         currentStreak: 0,
         longestStreak: 0,
       },
-      exams, // e.g. ["WAEC", "JAMB"]
+      exams,
       subjects: subjects.map((sub) => ({
         name: sub,
         quizzesCompleted: 0,
@@ -71,7 +92,7 @@ const register = async (req, res) => {
     });
 
     // 4️⃣ Generate access & refresh tokens
-    const { accessToken, refreshToken } = generateTokens(user._id);
+    const { accessToken, refreshToken } = generateTokens(user._id, res);
 
     // 5️⃣ Save refresh token in User
     const refreshTokenExpiry = new Date();
@@ -85,9 +106,9 @@ const register = async (req, res) => {
     // 6️⃣ Send response with both user and profile
     return res.status(201).json({
       message: "User registered successfully",
-      user,
-      userProfile,
-      tokens: { accessToken, refreshToken },
+      user: sanitizeUser(user),
+      profile: userProfile,
+      accessToken,
     });
   } catch (err) {
     console.error(err);
@@ -109,11 +130,49 @@ const login = async (req, res) => {
       return res.status(400).json({ message: "Invalid credentials" });
 
     // Generate tokens
-    const { accessToken } = generateTokens(user._id);
+    const { accessToken, refreshToken } = generateTokens(user._id, res);
+
+    const refreshTokenExpiry = new Date();
+    refreshTokenExpiry.setDate(refreshTokenExpiry.getDate() + 7);
+    user.refreshTokens.push({
+      token: refreshToken,
+      expiresAt: refreshTokenExpiry,
+    });
     await user.save();
+
+    let profile = await UserProfile.findOne({ userId: user._id });
+    if (!profile) {
+      profile = await UserProfile.create({
+        userId: user._id,
+        fullName: `${user.firstName || ""} ${user.lastName || ""}`.trim(),
+        email: user.email,
+        avatar: "/default-avatar.png",
+        exams: user.exams || [],
+        stats: {
+          level: 1,
+          xp: 0,
+          coins: user.coins || 0,
+          quizzesCompleted: 0,
+          averageScore: 0,
+          currentStreak: 0,
+          longestStreak: 0,
+        },
+        subjects: (user.subjects || []).map((sub) => ({
+          name: sub,
+          quizzesCompleted: 0,
+          averageScore: 0,
+          totalScore: 0,
+          totalAttempts: 0,
+        })),
+        achievements: [],
+        activityLog: [],
+      });
+    }
+
     return res.json({
-      // user,
       accessToken,
+      user: sanitizeUser(user),
+      profile,
     });
   } catch (err) {
     return res
@@ -126,12 +185,14 @@ const login = async (req, res) => {
 
 const refreshAccessToken = async (req, res) => {
   try {
-    const refreshToken = req.cookies.refreshToken;
+    const refreshToken =
+      getCookieValue(req, "refreshToken") || req.body?.refreshToken;
     if (!refreshToken) {
       return res.status(400).json({ message: "Refresh token required" });
     }
 
-    const decoded = jwt.verify(refreshToken, process.env.JWT_REFRESH_SECRET);
+    const refreshSecret = process.env.JWT_REFRESH_SECRET || process.env.JWT_SECRET;
+    const decoded = jwt.verify(refreshToken, refreshSecret);
     const user = await User.findById(decoded.userId);
 
     if (!user || !user.isActive) {
@@ -148,8 +209,17 @@ const refreshAccessToken = async (req, res) => {
         .json({ message: "Invalid or expired refresh token" });
     }
 
-    // issue new access token + rotate refresh token
-    const { accessToken } = generateTokens(user._id, res);
+    const { accessToken, refreshToken: newRefreshToken } = generateTokens(
+      user._id,
+      res
+    );
+
+    const refreshTokenExpiry = new Date();
+    refreshTokenExpiry.setDate(refreshTokenExpiry.getDate() + 7);
+    user.refreshTokens = user.refreshTokens
+      .filter((rt) => rt.token !== refreshToken)
+      .concat([{ token: newRefreshToken, expiresAt: refreshTokenExpiry }]);
+    await user.save();
 
     return res.json({ accessToken });
   } catch (err) {
@@ -183,7 +253,8 @@ const refreshAccessToken = async (req, res) => {
 // Logout
 const logout = async (req, res) => {
   try {
-    const { refreshToken } = req.body;
+    const refreshToken =
+      req.body?.refreshToken || getCookieValue(req, "refreshToken");
     const user = await User.findById(req.user._id);
     if (refreshToken) {
       user.refreshTokens = user.refreshTokens.filter(
@@ -191,6 +262,7 @@ const logout = async (req, res) => {
       );
       await user.save();
     }
+    res.clearCookie("refreshToken", { path: "/" });
     return res.json({ message: "Logged out successfully" });
   } catch (err) {
     return res
@@ -202,23 +274,38 @@ const logout = async (req, res) => {
 // Update Streak
 const updateStreak = async (req, res) => {
   try {
-    const user = await User.findById(req.user._id);
+    const userId = req.user._id;
+    const profile = await UserProfile.findOne({ userId });
+    if (!profile) return res.status(404).json({ message: "User profile not found" });
+
     const today = new Date();
-    const lastQuizDate = user.lastQuizDate;
+    const lastQuizDate = profile.lastQuizDate;
 
     if (!lastQuizDate) {
-      user.streak = 1;
+      profile.stats.currentStreak = 1;
     } else {
       const daysDiff = Math.floor(
         (today - lastQuizDate) / (1000 * 60 * 60 * 24)
       );
-      if (daysDiff === 1) user.streak += 1;
-      else if (daysDiff > 1) user.streak = 1;
+      if (daysDiff === 1) profile.stats.currentStreak += 1;
+      else if (daysDiff > 1) profile.stats.currentStreak = 1;
     }
 
-    user.lastQuizDate = today;
-    await user.save();
-    return res.json({ streak: user.streak });
+    profile.stats.longestStreak = Math.max(
+      profile.stats.longestStreak || 0,
+      profile.stats.currentStreak || 0
+    );
+    profile.lastQuizDate = today;
+    await profile.save();
+
+    await User.findByIdAndUpdate(userId, {
+      $set: { streak: profile.stats.currentStreak, lastQuizDate: today },
+    });
+
+    return res.json({
+      currentStreak: profile.stats.currentStreak,
+      longestStreak: profile.stats.longestStreak,
+    });
   } catch (err) {
     return res
       .status(500)
@@ -285,24 +372,49 @@ const getAllUsers = async (req, res) => {
 // Update Profile
 const updateProfile = async (req, res) => {
   try {
-    const { firstName, lastName, avatar, preferences } = req.body;
+    const { firstName, lastName, avatar, preferences, exams, subjects } =
+      req.body;
     const user = await User.findById(req.user._id);
     if (!user) return res.status(404).json({ message: "User not found" });
 
     if (firstName) user.firstName = firstName;
     if (lastName) user.lastName = lastName;
-    if (avatar) user.avatar = avatar;
     if (preferences) user.preferences = { ...user.preferences, ...preferences };
+    if (Array.isArray(exams)) user.exams = exams;
+    if (Array.isArray(subjects)) user.subjects = subjects;
 
     await user.save();
 
-    const userResponse = user.toObject();
-    delete userResponse.password;
-    delete userResponse.refreshTokens;
+    const profile = await UserProfile.findOne({ userId: user._id });
+    if (profile) {
+      if (avatar) profile.avatar = avatar;
+      profile.fullName = `${user.firstName || ""} ${user.lastName || ""}`.trim();
+      profile.email = user.email;
+      if (Array.isArray(exams)) profile.exams = exams;
+      if (Array.isArray(subjects)) {
+        const existingByName = new Map(
+          (profile.subjects || []).map((s) => [s.name, s])
+        );
+        profile.subjects = subjects.map((name) => {
+          const existing = existingByName.get(name);
+          return (
+            existing || {
+              name,
+              quizzesCompleted: 0,
+              averageScore: 0,
+              totalScore: 0,
+              totalAttempts: 0,
+            }
+          );
+        });
+      }
+      await profile.save();
+    }
 
     return res.json({
       message: "Profile updated successfully",
-      user: userResponse,
+      user: sanitizeUser(user),
+      profile,
     });
   } catch (err) {
     return res

@@ -1,4 +1,5 @@
 const User = require("../models/userModel");
+const UserProfile = require("../models/userProfileModel");
 
 const Quiz = require("../models/quizModel");
 
@@ -16,18 +17,27 @@ const createQuiz = async (req, res) => {
 // READ all quizzes personalized to the user
 const getQuizzes = async (req, res) => {
   try {
-    const userId = req.user.id; // ✅ correct way
+    const userId = req.user.id;
+
     // Find user
-    const user = await User.findById(userId).select("-correctAnswer");
+    const user = await User.findById(userId);
     if (!user) {
       return res.status(404).json({ message: "User not found" });
     }
 
-    // Filter quizzes by exam + subject
-    const quizzes = await Quiz.find({
-      exam: { $in: user.exams },
-      subject: { $in: user.subjects }, // direct array of strings
-    });
+    // Get user's profile
+    const userProfile = await UserProfile.findOne({ userId });
+    if (!userProfile) {
+      return res.status(404).json({ message: "User profile not found" });
+    }
+
+    // Filter quizzes using user's subjects + exams
+    // const quizzes = await Quiz.find({
+    //   // exam: { $in: user.exams }, // <-- correct source
+    //   subject: { $in: user.subjects }, // <-- correct source
+    // });
+
+    const quizzes = await Quiz.find();
 
     res.json(quizzes);
   } catch (error) {

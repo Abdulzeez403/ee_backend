@@ -30,6 +30,7 @@ const achievementSchema = new mongoose.Schema({
   earnedAt: { type: Date, default: Date.now },
 });
 
+
 // 📊 General performance and gamification stats
 const statsSchema = new mongoose.Schema({
   level: { type: Number, default: 1 },
@@ -44,11 +45,24 @@ const statsSchema = new mongoose.Schema({
 // 🧠 Overall User Profile
 const userProfileSchema = new mongoose.Schema(
   {
-    userId: { type: mongoose.Schema.Types.ObjectId, ref: "User", unique: true },
+    userId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "User",
+      required: true,
+      unique: true,
+      index: true,
+    },
     fullName: String,
     email: String,
     avatar: String,
     joinDate: { type: Date, default: Date.now },
+    exams: {
+      type: [String],
+      default: [],
+    },
+    lastQuizDate: {
+      type: Date,
+    },
 
     stats: statsSchema,
     subjects: [subjectProgressSchema],

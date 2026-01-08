@@ -81,6 +81,12 @@ const saveTransaction = async ({
         note: extra.note || data.note || null,
       };
       break;
+    case "subscription":
+      details = {
+        client_reference: extra.reference || data.reference || null,
+        note: extra.note || data.note || null,
+      };
+      break;
     default:
       console.warn("Unknown service type:", serviceType);
       return;

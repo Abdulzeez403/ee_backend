@@ -17,6 +17,7 @@ const transactionSchema = new mongoose.Schema(
         "cable_tv",
         "electricity",
         "exam_pin",
+        "subscription",
         "wallet",
         "referral_bonus",
       ],

@@ -70,9 +70,26 @@ const optionalAuth = async (req, res, next) => {
   }
 };
 
+const requireActiveSubscription = (req, res, next) => {
+  const membership = req.user?.membership;
+  const expiresAt = membership?.expiresAt ? new Date(membership.expiresAt) : null;
+  const isActive =
+    membership?.status === "active" && expiresAt && expiresAt > new Date();
+
+  if (!isActive) {
+    return res.status(403).json({
+      message:
+        "Active membership subscription required to purchase airtime or data",
+    });
+  }
+
+  next();
+};
+
 module.exports = {
   authenticateToken,
   requireAdmin,
   requireModerator,
   optionalAuth,
+  requireActiveSubscription,
 };

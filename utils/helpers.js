@@ -2,13 +2,33 @@ const crypto = require("crypto");
 const jwt = require("jsonwebtoken");
 require("dotenv").config();
 
+const buildCookieOptions = () => {
+  const isProd = process.env.NODE_ENV === "production";
+  return {
+    httpOnly: true,
+    secure: isProd,
+    sameSite: isProd ? "none" : "lax",
+    maxAge: 7 * 24 * 60 * 60 * 1000,
+    path: "/",
+  };
+};
+
 // Generate JWT tokens
 const generateTokens = (userId, res) => {
   const accessToken = jwt.sign({ userId }, process.env.JWT_SECRET, {
     expiresIn: "2d",
   });
 
-  return { accessToken };
+  const refreshSecret = process.env.JWT_REFRESH_SECRET || process.env.JWT_SECRET;
+  const refreshToken = jwt.sign({ userId }, refreshSecret, {
+    expiresIn: "7d",
+  });
+
+  if (res && typeof res.cookie === "function") {
+    res.cookie("refreshToken", refreshToken, buildCookieOptions());
+  }
+
+  return { accessToken, refreshToken };
 };
 
 // Generate random string

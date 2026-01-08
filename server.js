@@ -12,6 +12,7 @@ const quizRoutes = require("./routes/quiz");
 const businessLogicRoutes = require("./routes/businessLogic");
 const dailyChallengeRoutes = require("./routes/dailyChallenge");
 const rewardRoutes = require("./routes/reward");
+const subscriptionRoutes = require("./routes/subscription");
 
 // Security middleware
 app.use(helmet());
@@ -30,7 +31,14 @@ app.use(
 // app.use(limiter);
 
 // Body parsing middleware
-app.use(express.json({ limit: "10mb" }));
+app.use(
+  express.json({
+    limit: "10mb",
+    verify: (req, res, buf) => {
+      req.rawBody = buf;
+    },
+  })
+);
 app.use(express.urlencoded({ extended: true }));
 
 // Logging
@@ -46,6 +54,7 @@ app.use("/api/quiz", quizRoutes);
 app.use("/api/logic", businessLogicRoutes);
 app.use("/api/daily-challenges", dailyChallengeRoutes);
 app.use("/api/purchase", rewardRoutes);
+app.use("/api/subscription", subscriptionRoutes);
 
 // ✅ Healthcheck route to prevent cold start
 app.get("/", (req, res) => {

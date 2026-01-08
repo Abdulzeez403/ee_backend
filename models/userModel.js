@@ -46,6 +46,31 @@ const userSchema = new mongoose.Schema(
       enum: ["user", "admin", "moderator"],
       default: "user",
     },
+    exams: {
+      type: [String],
+      default: [],
+    },
+    subjects: {
+      type: [String],
+      default: [],
+    },
+    coins: {
+      type: Number,
+      default: 0,
+      min: 0,
+    },
+    streak: {
+      type: Number,
+      default: 0,
+      min: 0,
+    },
+    lastQuizDate: {
+      type: Date,
+    },
+    preferences: {
+      type: mongoose.Schema.Types.Mixed,
+      default: {},
+    },
     refreshTokens: [
       {
         token: String,
@@ -53,6 +78,17 @@ const userSchema = new mongoose.Schema(
         expiresAt: Date,
       },
     ],
+    membership: {
+      status: {
+        type: String,
+        enum: ["inactive", "active"],
+        default: "inactive",
+      },
+      startedAt: { type: Date },
+      expiresAt: { type: Date },
+      paystackCustomerCode: { type: String },
+      lastPaystackReference: { type: String },
+    },
   },
   {
     timestamps: true,
